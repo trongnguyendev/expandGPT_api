@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .myGPT {
+            background-color: #434654;
+            height: 100%;
+            width: 100%;
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            
+        }
+        .sidebar {
+            width: 261px;
+            height: 100%;
+            background-color: #202123;
+        }
+        #question {
+            color: #fff;
+            background-color: #2A2B31;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        #result {
+            color: #fff;
+            background-color: #2A2B31;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .main {
+            width: calc(100% - 261px);
+            padding: 20px 20px;
+        }
+        #button {
+            background: #ccc;
+            border: none;
+            padding: 7px 7px;
+            border-radius: 9px;
+        }
+    </style>
+</head>
+<body>
+    <div class="myGPT">
+        
+        <div class="sidebar">
+        </div>
+        <div class="main">
+            <div id="question"></div>
+            <div id="result">
+            </div>
+            <button id="button">Recorder</button>
+        </div>
+    </div>
+
+
+    <script>
+        var button = document.getElementById("button");
+        var result = document.getElementById('result');
+        var question = document.getElementById('question');
+
+        button.addEventListener('click', async () => {
+
+            // Require access micro phone
+            if(navigator.getUserMedia) {
+                console.log("yes");
+                processGPT();
+            }
+            else {
+                console.log("no");
+                navigator.getUserMedia({ audio: true }, function(stream) {
+                    processGPT();
+                }, function(error) {
+                    alert('Could not access microphone: ' + error);
+                });
+            }
+            
+        })
+
+        async function processGPT() {
+            // Create SpeechRecognition Onject
+            var recognition = new webkitSpeechRecognition();
+            // Config SpeechRecognition
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            // Start recorder
+            recognition.start();
+            // End recorder
+            recognition.onresult = async function(event) {
+                let answer = await createChatGPT(event.results[0][0].transcript);
+                question.innerHTML = event.results[0][0].transcript;
+
+                if(answer) {
+                    result.innerHTML = answer;
+                }
+            };
+            // Error
+            recognition.onerror = function(event) {
+                alert('Speech recognition error: ' + event.error);
+            };
+        }
+
+        async function createChatGPT(content) {
+            let url = 'http://localhost:3000/api/chatGpt';
+            let response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    'content': content
+                }),
+            });
+            const jsonData = await response.json();
+            console.log(jsonData);
+            return jsonData.message.content;
+        }
+
+    </script>
+</body>
+</html>
